@@ -420,9 +420,9 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
     // the video straightaway. We avoid this surprising behaviour
     // by not changing the speed of the player until after the video
     // starts playing
-    if (!value.isPlaying) {
-      return;
-    }
+//     if (!value.isPlaying) {
+//       return;
+//     }
 
     await _channel.invokeMethod<void>(
       'setSpeed',
