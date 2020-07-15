@@ -39,6 +39,7 @@ int64_t FLTCMTimeToMillis(CMTime time) {
 @property(nonatomic) CGAffineTransform preferredTransform;
 @property(nonatomic, readonly) bool disposed;
 @property(nonatomic, readonly) bool isPlaying;
+@property(nonatomic, readonly) double speed;
 @property(nonatomic) bool isLooping;
 @property(nonatomic, readonly) bool isInitialized;
 - (instancetype)initWithURL:(NSURL*)url frameUpdater:(FLTFrameUpdater*)frameUpdater;
@@ -190,6 +191,7 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
   NSAssert(self, @"super init cannot be nil");
   _isInitialized = false;
   _isPlaying = false;
+  _speed = 1.0; // default playing speed equals to 1.0 => normal speed;
   _disposed = false;
 
   AVAsset* asset = [item asset];
@@ -290,9 +292,9 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
     return;
   }
   if (_isPlaying) {
-    [_player play];
+    _player.rate = _speed;
   } else {
-    [_player pause];
+    _player.rate = 0.0; // paused
   }
   _displayLink.paused = !_isPlaying;
 }
@@ -355,16 +357,18 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 }
 
 - (void)setSpeed:(double)speed result:(FlutterResult)result {
-  if (speed == 1.0 || speed == 0.0) {
-      _player.rate = speed;
-    result(nil);
-  } else if (speed < 0 || speed > 2.0) {
+  if (speed < 0 || speed > 2.0) {
     result([FlutterError errorWithCode:@"unsupported_speed"
                                message:@"Speed must be >= 0.0 and <= 2.0"
                                details:nil]);
-  } else if ((speed > 1.0 && _player.currentItem.canPlayFastForward) ||
-             (speed < 1.0 && _player.currentItem.canPlaySlowForward)) {
-      _player.rate = speed;
+  } else if (
+    speed == 0.0 ||
+    speed == 1.0 ||
+    (speed > 1.0 && _player.currentItem.canPlayFastForward) ||
+    (speed < 1.0 && _player.currentItem.canPlaySlowForward)
+  ) {
+    _speed = speed;
+    [self updatePlayingState];
     result(nil);
   } else {
     if (speed > 1.0) {
